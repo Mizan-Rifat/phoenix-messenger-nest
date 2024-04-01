@@ -1,17 +1,20 @@
-import { createZodDto } from 'nestjs-zod';
-import { z } from 'nestjs-zod/z';
+import { IsEmail, IsNotEmpty, Validate } from 'class-validator';
+import {
+  UniqueValidation,
+  UniqueValidationConstraint,
+} from 'src/validation/UniqueValidation';
+import { User, UserSchema } from '../users.schema';
 
-export const createUserSchema = z
-  .object({
-    name: z.string({
-      required_error: 'Name is required',
-      invalid_type_error: 'Name must be a string',
-    }),
-    email: z.string({ required_error: 'Email field is required' }).email({
-      message: 'Email filed must be a valid email address',
-    }),
-    password: z.string(),
-  })
-  .required();
+export class CreateUserDto {
+  @IsNotEmpty()
+  name: string;
 
-export class CreateUserDto extends createZodDto(createUserSchema) {}
+  //@ts-ignore
+  @Validate(UniqueValidationConstraint, { name: 'User', schema: UserSchema })
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
+
+  @IsNotEmpty()
+  password: string;
+}

@@ -1,17 +1,31 @@
-import { PipeTransform, BadRequestException } from '@nestjs/common';
-import { ZodObject } from 'zod';
+import {
+  PipeTransform,
+  BadRequestException,
+  Injectable,
+  ArgumentMetadata,
+} from '@nestjs/common';
+import { ZodDto, validate } from 'nestjs-zod';
+import { ZodSchema } from 'zod';
 
+export function isZodDto(metatype: any): metatype is ZodDto<unknown> {
+  return metatype?.isZodDto;
+}
+
+@Injectable()
 export class ZodValidationPipe implements PipeTransform {
-  constructor(private schema: ZodObject<any>) {}
+  constructor(private schemaOrDto?: ZodSchema | ZodDto) {}
 
-  transform(value: unknown) {
-    try {
-      this.schema.parse(value);
-    } catch (error) {
-      console.log(error);
-
-      throw new BadRequestException(error.message);
+  public transform(value: unknown, metadata: ArgumentMetadata) {
+    if (this.schemaOrDto) {
+      return validate(value, this.schemaOrDto);
     }
-    return value;
+
+    const { metatype } = metadata;
+
+    if (!isZodDto(metatype)) {
+      return value;
+    }
+
+    return validate(value, metatype.schema);
   }
 }

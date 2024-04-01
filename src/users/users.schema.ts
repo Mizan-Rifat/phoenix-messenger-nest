@@ -1,11 +1,19 @@
-import mongoose from 'mongoose';
 import * as bcrypt from 'bcrypt';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
-export const UserSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, index: true, unique: true },
-  password: { type: String, required: true },
-});
+@Schema()
+export class User {
+  @Prop({ required: true })
+  name: string;
+
+  @Prop({ required: true, index: true, unique: true })
+  email: string;
+
+  @Prop({ required: true })
+  password: string;
+}
+
+export const UserSchema = SchemaFactory.createForClass(User);
 
 UserSchema.pre('save', async function (next) {
   const user = this as any; // Ensure 'this' is interpreted as a user document
@@ -18,4 +26,12 @@ UserSchema.pre('save', async function (next) {
   } catch (error) {
     return next(error); // Pass any errors to the next middleware
   }
+});
+
+UserSchema.post('save', function (error, doc, next) {
+  next(
+    error.code === 11000
+      ? new Error('The email has already been taken.')
+      : error,
+  );
 });

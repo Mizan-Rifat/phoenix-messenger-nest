@@ -1,23 +1,41 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { UsersService } from './../users/users.service';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 
-@Controller()
+@Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly usersService: UsersService,
+  ) {}
+
+  @UseGuards(AuthGuard('local'))
+  @Post('login')
+  async login(@Request() req) {
+    return this.authService.signIn(req.user);
+  }
 
   @Post('register')
-  register(@Body() createUserDto: CreateUserDto) {
-    return this.authService.create(createUserDto);
+  async create(@Body() createUserDto: CreateUserDto) {
+    const user = await this.usersService.create(createUserDto);
+
+    return this.authService.signIn(user);
   }
 
-  @Post('/sign-in')
-  signIn(email: string, pass: string) {
-    return this.authService.signIn(email, pass);
+  @UseGuards(AuthGuard('jwt'))
+  @Get('profile')
+  async profile(@Request() req) {
+    return req.user;
   }
-
-  // @Get('/profile')
-  // findOne(@Param('id') id: string) {
-  //   return this.authService.findOne(+id);
-  // }
 }
